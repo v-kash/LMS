@@ -3,15 +3,30 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+"dev": "node server.js",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.3",
+    "clsx": "^2.1.1",
+    "csv-parse": "^6.1.0",
+    "date-fns": "^4.1.0",
+    "dotenv": "^17.2.3",
+    "iconv-lite": "^0.7.2",
+    "jsonwebtoken": "^9.0.3",
+    "lucide-react": "^0.563.0",
+    "multer": "^2.0.2",
+    "mysql2": "^3.16.2",
     "next": "16.1.6",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
+    "xlsx": "^0.18.5",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
