@@ -7,7 +7,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "dev_secret";
 // This config tells Next.js to use Node.js runtime
 export const config = {
   runtime: "nodejs",
-  matcher: ["/dashboard/:path*", "/login"],
+  matcher: ["/", "/dashboard/:path*", "/login"],
 };
 
 export function middleware(request) {
@@ -19,31 +19,34 @@ export function middleware(request) {
   console.log("Has token:", !!token);
 
   // Public routes
-  if (pathname === "/login") {
-    console.log("Login page - checking if already logged in");
-    if (token) {
-      try {
-        const user = jwt.verify(token, JWT_SECRET);
-        console.log("Already logged in as:", user.role);
-
-        // Redirect to appropriate dashboard if already logged in
-        // const redirectPath =
-        //   user.role === "MANAGER" ? "/dashboard/manager" : "/dashboard/sales";
-        const redirectPath =
-          user.role === "ADMIN"
-            ? "/dashboard/admin"
-            : user.role === "MANAGER"
-              ? "/dashboard/manager"
-              : user.role === "REPORTER"
-                ? "/dashboard/export"
-                : "/dashboard/sales";
-        return NextResponse.redirect(new URL(redirectPath, request.url));
-      } catch (error) {
-        console.log("Invalid token, staying on login page");
-        return NextResponse.next();
-      }
+  // Handle root route
+  if (pathname === "/") {
+    if (!token) {
+      console.log("Root accessed without login → redirect to login");
+      return NextResponse.redirect(new URL("/login", request.url));
     }
-    return NextResponse.next();
+
+    try {
+      const user = jwt.verify(token, JWT_SECRET);
+
+      const redirectPath =
+        user.role === "ADMIN"
+          ? "/dashboard/admin"
+          : user.role === "MANAGER"
+            ? "/dashboard/manager"
+            : user.role === "REPORTER"
+              ? "/dashboard/export"
+              : "/dashboard/sales";
+
+      console.log("Root redirecting to:", redirectPath);
+
+      return NextResponse.redirect(new URL(redirectPath, request.url));
+    } catch (error) {
+      console.log("Invalid token at root → login");
+      const response = NextResponse.redirect(new URL("/login", request.url));
+      response.cookies.delete("token");
+      return response;
+    }
   }
 
   // API auth routes - always allow
@@ -92,6 +95,12 @@ export function middleware(request) {
       // After the manager check, add:
       if (pathname === "/dashboard/sales" && user.role === "REPORTER") {
         return NextResponse.redirect(new URL("/dashboard/export", request.url));
+      }
+
+      if (pathname.startsWith("/dashboard/admin") && user.role !== "ADMIN") {
+        return NextResponse.redirect(
+          new URL(getDashboardByRole(user.role), request.url),
+        );
       }
 
       console.log("Access granted to:", pathname);
