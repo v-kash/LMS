@@ -15,6 +15,15 @@ export async function POST(req) {
       );
     }
 
+    const origin = req.headers.get("origin");
+
+if (origin !== "https://www.nextgenbusiness.co.in") {
+  return NextResponse.json(
+    { error: "Invalid origin" },
+    { status: 403 }
+  );
+}
+
     const body = await req.json();
     console.log("LMS received:", body);
 

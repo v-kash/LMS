@@ -30,11 +30,13 @@ export function middleware(request) {
         // const redirectPath =
         //   user.role === "MANAGER" ? "/dashboard/manager" : "/dashboard/sales";
         const redirectPath =
-          user.role === "MANAGER"
-            ? "/dashboard/manager"
-            : user.role === "REPORTER"
-              ? "/dashboard/export"
-              : "/dashboard/sales";
+          user.role === "ADMIN"
+            ? "/dashboard/admin"
+            : user.role === "MANAGER"
+              ? "/dashboard/manager"
+              : user.role === "REPORTER"
+                ? "/dashboard/export"
+                : "/dashboard/sales";
         return NextResponse.redirect(new URL(redirectPath, request.url));
       } catch (error) {
         console.log("Invalid token, staying on login page");
@@ -71,11 +73,13 @@ export function middleware(request) {
       if (pathname === "/dashboard") {
         console.log("Generic dashboard access");
         const redirectPath =
-          user.role === "MANAGER"
-            ? "/dashboard/manager"
-            : user.role === "REPORTER"
-              ? "/dashboard/export"
-              : "/dashboard/sales";
+          user.role === "ADMIN"
+            ? "/dashboard/admin"
+            : user.role === "MANAGER"
+              ? "/dashboard/manager"
+              : user.role === "REPORTER"
+                ? "/dashboard/export"
+                : "/dashboard/sales";
         return NextResponse.redirect(new URL(redirectPath, request.url));
       }
 

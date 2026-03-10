@@ -65,7 +65,23 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
-const VERIFY_TOKEN = "myVerifyToken123";
+const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN;
+
+async function fetchLeadWithRetry(leadId, retries = 5) {
+  const url = `https://graph.facebook.com/v19.0/${leadId}?fields=id,created_time,field_data,ad_name,campaign_name,platform&access_token=${process.env.PAGE_ACCESS_TOKEN}`;
+
+  for (let i = 0; i < retries; i++) {
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (!data.error) return data;
+
+    console.log(`⏳ Retry ${i + 1} for lead ${leadId}`);
+    await new Promise((r) => setTimeout(r, 3000));
+  }
+
+  throw new Error("Failed to fetch lead after retries");
+}
 
 export async function GET(req) {
   const searchParams = req.nextUrl.searchParams;
@@ -107,16 +123,18 @@ export async function POST(req) {
 
         console.log(`📋 New lead ID: ${leadId}`);
 
+        const data = await fetchLeadWithRetry(leadId);
+
         try {
           // Fetch lead data from Meta
-          const url = `https://graph.facebook.com/v19.0/${leadId}?fields=id,created_time,field_data,ad_name,campaign_name,platform&access_token=${process.env.PAGE_ACCESS_TOKEN}`;
-          const res = await fetch(url);
-          const data = await res.json();
+          // const url = `https://graph.facebook.com/v19.0/${leadId}?fields=id,created_time,field_data,ad_name,campaign_name,platform&access_token=${process.env.PAGE_ACCESS_TOKEN}`;
+          // const res = await fetch(url);
+          // const data = await res.json();
 
-          if (data.error) {
-            console.error("❌ Graph API error:", JSON.stringify(data.error));
-            continue;
-          }
+          // if (data.error) {
+          //   console.error("❌ Graph API error:", JSON.stringify(data.error));
+          //   continue;
+          // }
 
           console.log("✅ Lead Data:", JSON.stringify(data, null, 2));
 

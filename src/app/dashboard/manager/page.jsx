@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { io } from "socket.io-client";
 import { useRef } from "react";
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 
 export default function ManagerDashboard() {
   const router = useRouter();
@@ -43,6 +44,19 @@ export default function ManagerDashboard() {
   const [dateTo, setDateTo] = useState("");
   const [quickDate, setQuickDate] = useState("");
 
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const isManager = user?.role === "MANAGER";
 
   function applyQuickDate(type) {
@@ -66,6 +80,69 @@ export default function ManagerDashboard() {
     setDateTo(to);
     setQuickDate(type);
     setPage(1);
+  }
+
+  function showSuccess(msg) {
+    setSuccess(msg);
+    setTimeout(() => setSuccess(""), 3000);
+  }
+
+  function showError(msg) {
+    setError(msg);
+    setTimeout(() => setError(""), 4000);
+  }
+
+  async function handleChangePassword(e) {
+    e.preventDefault();
+
+    setPasswordError("");
+
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      setPasswordError("All fields are required");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordError("Password must be at least 6 characters");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New password and confirm password do not match");
+      return;
+    }
+
+    setSavingPassword(true);
+
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          oldPassword,
+          newPassword,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setShowPasswordModal(false);
+        setOldPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+
+        showSuccess("Password updated successfully!");
+      } else {
+        setPasswordError(data.message || "Old password is incorrect");
+      }
+    } catch (err) {
+      setPasswordError("Server error. Please try again.");
+    }
+
+    setSavingPassword(false);
   }
 
   async function fetchLeads() {
@@ -344,6 +421,18 @@ export default function ManagerDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* Toast */}
+      {success && (
+        <div className="fixed top-4 right-4 z-80 bg-emerald-600 text-white px-4 py-3 rounded-lg shadow-lg text-sm font-medium animate-fade-in">
+          ✅ {success}
+        </div>
+      )}
+
+      {error && (
+        <div className="fixed top-4 right-4 z-50 bg-red-600 text-white px-4 py-3 rounded-lg shadow-lg text-sm font-medium">
+          ❌ {error}
+        </div>
+      )}
       {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
         <div className="max-w-[1400px] mx-auto px-6 lg:px-8">
@@ -483,10 +572,12 @@ export default function ManagerDashboard() {
                     </div>
 
                     <div className="p-2">
-                      <Link
-                        href="/dashboard/profile"
-                        className="flex items-center gap-3 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md transition-colors"
-                        onClick={() => setShowUserMenu(false)}
+                      <button
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          setShowPasswordModal(true);
+                        }}
+                        className="flex items-center gap-3 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md transition-colors w-full"
                       >
                         <svg
                           className="w-5 h-5 text-slate-400"
@@ -498,37 +589,11 @@ export default function ManagerDashboard() {
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             strokeWidth={2}
-                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                            d="M12 11c1.657 0 3-1.343 3-3V6a3 3 0 10-6 0v2c0 1.657 1.343 3 3 3z"
                           />
                         </svg>
-                        Profile Settings
-                      </Link>
-                      <Link
-                        href="/dashboard/settings"
-                        className="flex items-center gap-3 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md transition-colors"
-                        onClick={() => setShowUserMenu(false)}
-                      >
-                        <svg
-                          className="w-5 h-5 text-slate-400"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                          />
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                          />
-                        </svg>
-                        Account Settings
-                      </Link>
+                        Change Password
+                      </button>
                     </div>
 
                     <div className="p-2 border-t border-slate-200">
@@ -1046,6 +1111,144 @@ export default function ManagerDashboard() {
           </div>
         </div>
       </main>
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white rounded-xl w-full max-w-md shadow-xl">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+              <h2 className="text-base font-semibold text-slate-900">
+                Change Password
+              </h2>
+
+              <button
+                onClick={() => setShowPasswordModal(false)}
+                className="text-slate-400 hover:text-slate-700 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <form
+              onSubmit={handleChangePassword}
+              className="px-6 py-5 space-y-4"
+            >
+              {/* ERROR MESSAGE */}
+              {passwordError && (
+                <div className="px-3 py-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-md">
+                  {passwordError}
+                </div>
+              )}
+
+              {/* Old Password */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Old Password
+                </label>
+
+                <div className="relative">
+                  <input
+                    type={showOldPassword ? "text" : "password"}
+                    value={oldPassword}
+                    onChange={(e) => setOldPassword(e.target.value)}
+                    placeholder="Enter old password"
+                    className="w-full px-3 py-2 border border-slate-300 text-slate-700 rounded-md text-sm outline-none focus:ring-2 focus:ring-slate-900"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowOldPassword(!showOldPassword)}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-700"
+                  >
+                    {showOldPassword ? (
+                      <EyeSlashIcon className="w-5 h-5" />
+                    ) : (
+                      <EyeIcon className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* New Password */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  New Password
+                </label>
+
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Min 6 characters"
+                    className="w-full px-3 py-2 border border-slate-300 text-slate-700 rounded-md text-sm outline-none focus:ring-2 focus:ring-slate-900"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-700"
+                  >
+                    {showNewPassword ? (
+                      <EyeSlashIcon className="w-5 h-5" />
+                    ) : (
+                      <EyeIcon className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Confirm Password */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Confirm Password
+                </label>
+
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Repeat password"
+                    className="w-full px-3 py-2 border border-slate-300 text-slate-700 rounded-md text-sm outline-none focus:ring-2 focus:ring-slate-900"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-700"
+                  >
+                    {showConfirmPassword ? (
+                      <EyeSlashIcon className="w-5 h-5" />
+                    ) : (
+                      <EyeIcon className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordModal(false)}
+                  className="px-4 py-2 border border-slate-300 text-slate-700 rounded-md text-sm hover:bg-slate-50 transition-all"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={savingPassword}
+                  className="px-4 py-2 bg-slate-900 text-white rounded-md text-sm hover:bg-slate-800 transition-all disabled:opacity-50"
+                >
+                  {savingPassword ? "Saving..." : "Update Password"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
